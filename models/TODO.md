@@ -1,0 +1,3 @@
+-   [ ] Remplacer l'ORM par du SQL pur
+-   [ ] Faire un DQL par table
+-   [ ] Faire un DML par table
