@@ -1,25 +1,29 @@
 const bcrypt = require('bcrypt');
 
-const User = require('../models/user');
+const UserDQL = require('../models/user_dql');
+const UserDML = require('../models/user_dml');
+const db = require('../database');
 
 exports.getAllUsers = async (req, res) => {
     try {
-        const users = await User.findAll();
-        if (users === null)
+        const users = await UserDQL.getAll();
+        if (users.length === 0)
             return res.status(404).json({ message: 'Users not found' });
         return res.status(200).json(users);
     } catch (error) {
+        console.log(error);
         return res.status(500).json({ message: 'Database Error', error });
     }
 };
 
 exports.getUserById = async (req, res) => {
     try {
+        // Epuration de l'id reçu
         const userId = parseInt(req.params.id);
         if (!userId)
             return res.status(400).json({ message: 'Missing parameter' });
-        const user = await User.findByPk(userId);
-        if (user === null)
+        const user = (await UserDQL.get({ id: userId }))[0];
+        if (user === undefined)
             return res.status(404).json({ message: 'User not found' });
         return res.status(200).json(user);
     } catch (error) {
@@ -36,15 +40,13 @@ exports.createUser = async (req, res) => {
 
     try {
         // vérification de l'unicité des données reçues
-        const userEmail = await User.findOne({ where: { email: email } });
-        if (userEmail) {
+        const userEmail = await UserDQL.get({ email: email });
+        if (userEmail.length > 0) {
             return res.status(400).json({ message: 'Email already exists' });
         }
 
-        const userUsername = await User.findOne({
-            where: { username: username },
-        });
-        if (userUsername) {
+        const userUsername = await UserDQL.get({ username: username });
+        if (userUsername.length > 0) {
             return res.status(400).json({ message: 'Username already exists' });
         }
 
@@ -54,23 +56,28 @@ exports.createUser = async (req, res) => {
             parseInt(process.env.BCRYPT_SALT_ROUNDS),
         );
 
-        const user = await User.create({
+        const user = await UserDML.create({
             username: username,
             email: email,
             password: hash,
         });
+        await db.commitTransaction();
+
         return res.status(201).json({ message: 'user created', user });
     } catch (error) {
+        await db.rollbackTransaction();
         if (error.name == 'SequelizeDatabaseError')
             return res.status(500).json({ message: 'Database Error', error });
         else if (error.name == 'BcryptError')
             return res
                 .status(500)
                 .json({ message: 'Hash Process Error', error });
-        else
+        else {
+            console.log(error);
             return res
                 .status(500)
                 .json({ message: 'Register process fail', error });
+        }
     }
 };
 
@@ -83,14 +90,14 @@ exports.updateUser = async (req, res) => {
 
     try {
         // Recherche de l'utilisateur à modifier
-        const user = await User.findByPk(userId);
+        const user = await UserDQL.findByPk(userId);
         // Vérification de l'existence de l'utilisateur
         if (user === null) {
             return res.status(404).json({ message: 'User not found' });
         }
 
         // Mise à jour de l'utilisateur
-        const userUpdated = await User.update(req.body, {
+        const userUpdated = await UserDQL.update(req.body, {
             where: { id: userId },
         });
         return res.status(200).json({ message: 'User updated', userUpdated });
@@ -108,7 +115,7 @@ exports.deleteUser = async (req, res) => {
     }
 
     try {
-        const userDestroyed = await User.destroy({ where: { id: userId } });
+        const userDestroyed = await UserDQL.destroy({ where: { id: userId } });
         if (userDestroyed === 0) {
             return res.status(404).json({ message: 'User not found' });
         }
@@ -127,7 +134,7 @@ exports.restoreUser = async (req, res) => {
     }
 
     try {
-        const userRestored = await User.restore({ where: { id: userId } });
+        const userRestored = await UserDQL.restore({ where: { id: userId } });
         if (userRestored === 0) {
             return res.status(404).json({ message: 'User not found' });
         }

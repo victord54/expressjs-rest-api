@@ -1,0 +1,8 @@
+{
+    "files.eol": "\n",
+    "editor.insertSpaces": true,
+    "editor.detectIndentation": false,
+    "editor.tabSize": 4,
+    "editor.formatOnSave": true,
+    "editor.formatOnPaste": true
+}

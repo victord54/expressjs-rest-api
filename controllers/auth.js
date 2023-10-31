@@ -1,7 +1,7 @@
-const User = require('../models/user');
+const database = require('../database');
+const User = require('../models/user_dql');
 const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
-const process = require('process');
 
 exports.login = async (req, res) => {
     const { email, password } = req.body;
@@ -12,12 +12,11 @@ exports.login = async (req, res) => {
     }
 
     try {
-        const user = await User.findOne({ where: { email: email } });
+        const user = (await User.get({ email: email }))[0];
 
         if (user === null) {
             return res.status(401).json({ message: 'User not found' });
         }
-
         const valid = await bcrypt.compare(password, user.password);
         if (!valid) {
             return res
@@ -40,12 +39,8 @@ exports.login = async (req, res) => {
             token,
         });
     } catch (error) {
-        if (error.name == 'SequelizeDatabaseError')
-            return res.status(500).json({ message: 'Database Error', error });
-        else
-            return res
-                .status(500)
-                .json({ message: 'Login process fail', error });
+        console.log(error);
+        return res.status(500).json({ message: 'Database Error', error });
     }
 };
 
@@ -79,7 +74,9 @@ exports.register = async (req, res) => {
             email: email,
             password: hash,
         });
-        return res.status(201).json({ message: 'user created', user });
+        // await database.rollbackTransaction();
+        if (user)
+            return res.status(201).json({ message: 'user created', user });
     } catch (error) {
         if (error.name == 'SequelizeDatabaseError')
             return res.status(500).json({ message: 'Database Error', error });
