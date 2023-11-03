@@ -1,6 +1,4 @@
 const express = require('express');
-const User = require('../models/user_dql');
-const bcrypt = require('bcrypt');
 
 const userController = require('../controllers/users');
 

@@ -4,15 +4,15 @@ const UserDQL = require('../models/user_dql');
 const UserDML = require('../models/user_dml');
 const db = require('../database');
 
-exports.getAllUsers = async (req, res) => {
+const { RequestError } = require('../errors/RequestError');
+
+exports.getAllUsers = async (req, res, next) => {
     try {
         const users = await UserDQL.getAll();
-        if (users.length === 0)
-            return res.status(404).json({ message: 'Users not found' });
+        if (users.length === 0) throw new RequestError('No users in database');
         return res.status(200).json(users);
     } catch (error) {
-        console.log(error);
-        return res.status(500).json({ message: 'Database Error', error });
+        next(error);
     }
 };
 

@@ -1,10 +1,12 @@
 const express = require('express');
 const cors = require('cors');
 const database = require('./database');
-const checkToken = require('./jwt/check');
+const mail = require('./mail');
 
 const userRoutes = require('./routes/users');
 const authRoutes = require('./routes/auth');
+const articleRoutes = require('./routes/article');
+
 const utils = require('./controllers/utils');
 
 const app = express();
@@ -25,8 +27,15 @@ app.use('/users', userRoutes);
 
 app.use('/auth', authRoutes);
 
+app.use('/articles', articleRoutes);
+
 app.use('*', (req, res) => {
     return res.status(501).json('No route found');
+});
+
+app.use((err, req, res, next) => {
+    utils.errorLogFile(err);
+    return res.status(500).json({ message: err.message, error: err });
 });
 
 /**
@@ -39,6 +48,7 @@ async function startServer() {
         console.log(
             'Connection to database has been established successfully.',
         );
+        await mail.initMail();
         app.listen(process.env.SRV_PORT, () => {
             console.log(`Server is listening on port ${process.env.SRV_PORT}`);
         });

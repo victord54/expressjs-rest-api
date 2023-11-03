@@ -1,4 +1,3 @@
-const database = require('../database');
 const User = require('../models/user_dql');
 const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
